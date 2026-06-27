@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Appellation AI Project Tracker</title>
+<style>
+  :root {
+    color-scheme: light;
+    --cast-iron: #2D2926;
+    --cast-iron-soft: #4A433D;
+    --copper: #B07A4A;
+    --copper-soft: #C99B71;
+    --linen: #F5EFE3;
+    --off-white: #FAF7F1;
+    --paper: #FFFDF8;
+    --mustard: #C9A227;
+    --olive: #687C56;
+    --green: #4F7349;
+    --rose: #A8624C;
+    --muted: #8A8175;
+    --border: #E0DACD;
+    --border-soft: #EDE7D9;
+    --shadow: 0 2px 12px rgba(45, 41, 38, 0.06);
+    --shadow-lg: 0 8px 32px rgba(45, 41, 38, 0.12);
+    --serif: Georgia, "Cormorant Garamond", "Times New Roman", serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--linen);
+    color: var(--cast-iron);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 28px 24px 60px; }
+
+  /* Header */
+  header { margin-bottom: 22px; }
+  h1 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 36px;
+    letter-spacing: -0.01em;
+    margin: 0 0 4px;
+    color: var(--cast-iron);
+  }
+  .subtitle { color: var(--muted); margin: 0 0 6px; font-size: 14px; }
+  .env-pill {
+    display: inline-block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    background: var(--off-white);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 3px 8px;
+    border-radius: 999px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  /* Stats row */
+  .stats {
+    display: flex;
+    gap: 10px;
+    margin: 16px 0 18px;
+    flex-wrap: wrap;
+  }
+  .stat {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 14px;
+    min-width: 110px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .stat:hover { background: var(--off-white); border-color: var(--copper-soft); }
+  .stat.active { background: var(--cast-iron); border-color: var(--cast-iron); }
+  .stat.active .stat-label, .stat.active .stat-value { color: var(--off-white); }
+  .stat-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .stat-value {
+    font-family: var(--serif);
+    font-size: 24px;
+    color: var(--cast-iron);
+  }
+
+  /* Controls */
+  .controls {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px;
+    margin-bottom: 16px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    box-shadow: var(--shadow);
+  }
+  .control {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 120px;
+  }
+  .control-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+  }
+  .control input, .control select, .modal input, .modal select, .modal textarea {
+    font-family: var(--sans);
+    font-size: 13px;
+    border: 1px solid var(--border);
+    background: var(--off-white);
+    color: var(--cast-iron);
+    padding: 7px 10px;
+    border-radius: 3px;
+    outline: none;
+  }
+  .control input:focus, .control select:focus,
+  .modal input:focus, .modal select:focus, .modal textarea:focus {
+    border-color: var(--copper);
+    background: var(--paper);
+  }
+  .search-control { flex: 1; min-width: 200px; }
+  .control.spacer { flex: 1; }
+  .btn {
+    display: inline-block;
+    background: var(--cast-iron);
+    color: var(--off-white);
+    border: 1px solid var(--cast-iron);
+    padding: 9px 18px;
+    border-radius: 3px;
+    font-family: var(--sans);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.05s;
+  }
+  .btn:hover { background: var(--cast-iron-soft); }
+  .btn:active { transform: translateY(1px); }
+  .btn-secondary {
+    background: transparent;
+    color: var(--cast-iron);
+    border-color: var(--border);
+  }
+  .btn-secondary:hover { background: var(--off-white); border-color: var(--copper); }
+  .btn-link {
+    background: none;
+    border: none;
+    color: var(--copper);
+    padding: 0;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  /* Table */
+  .table-wrap {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    padding: 12px 10px;
+    background: var(--off-white);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  thead th:hover { color: var(--cast-iron); }
+  thead th .sort-indicator { color: var(--copper); margin-left: 4px; }
+  tbody tr {
+    border-bottom: 1px solid var(--border-soft);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  tbody tr:hover { background: var(--off-white); }
+  tbody tr.expanded { background: var(--off-white); }
+  tbody tr.expanded-detail { cursor: default; }
+  tbody tr.expanded-detail:hover { background: var(--off-white); }
+  tbody td {
+    padding: 12px 10px;
+    vertical-align: top;
+    font-size: 13px;
+  }
+  td.task-cell { min-width: 260px; }
+  td.task-cell .task-name {
+    font-weight: 600;
+    color: var(--cast-iron);
+    margin-bottom: 2px;
+  }
+  td.task-cell .task-details {
+    color: var(--muted);
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  /* Status & priority badges */
+  .badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+  .badge-status { cursor: pointer; }
+  .status-Submitted   { background: var(--border); color: var(--cast-iron-soft); }
+  .status-Reviewing   { background: var(--mustard); color: var(--cast-iron); }
+  .status-Approved    { background: var(--olive); color: var(--off-white); }
+  .status-InProgress  { background: var(--copper); color: var(--off-white); }
+  .status-Blocked     { background: var(--rose); color: var(--off-white); }
+  .status-Done        { background: var(--green); color: var(--off-white); }
+  .status-Declined    { background: var(--muted); color: var(--off-white); }
+
+  .priority-High   { color: var(--rose); font-weight: 600; }
+  .priority-Medium { color: var(--copper); font-weight: 500; }
+  .priority-Low    { color: var(--muted); }
+
+  /* Inline status select (looks like a badge) */
+  .status-select {
+    border: none;
+    border-radius: 3px;
+    padding: 3px 18px 3px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    font-family: var(--sans);
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'><path fill='%232D2926' d='M0 0l4 6 4-6z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 5px center;
+    background-size: 7px;
+  }
+
+  /* Expanded row */
+  .detail {
+    background: var(--off-white);
+    padding: 18px 22px 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 22px;
+  }
+  .detail h3 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 18px;
+    margin: 0 0 8px;
+    color: var(--cast-iron);
+  }
+  .detail-section { margin-bottom: 18px; }
+  .detail-section h4 {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    margin: 0 0 6px;
+    font-weight: 600;
+  }
+  .detail-body {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 10px;
+    font-size: 13px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+  }
+  .edit-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 6px 14px;
+    align-items: center;
+    font-size: 12px;
+  }
+  .edit-grid .label { color: var(--muted); text-transform: uppercase; font-size: 10px; letter-spacing: 0.12em; }
+  .edit-grid select, .edit-grid input {
+    font-family: var(--sans);
+    font-size: 12px;
+    border: 1px solid var(--border);
+    background: var(--paper);
+    color: var(--cast-iron);
+    padding: 5px 8px;
+    border-radius: 3px;
+    width: 100%;
+  }
+  .meta-row {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  /* Comments */
+  .comments-list { margin-bottom: 8px; }
+  .comment {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+  .comment-meta {
+    color: var(--muted);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 3px;
+  }
+  .comment-body { color: var(--cast-iron); white-space: pre-wrap; }
+  .comment-form { display: flex; gap: 6px; margin-top: 6px; }
+  .comment-form select { width: 110px; }
+  .comment-form input {
+    flex: 1;
+    font-family: var(--sans);
+    font-size: 12px;
+    border: 1px solid var(--border);
+    background: var(--paper);
+    color: var(--cast-iron);
+    padding: 6px 9px;
+    border-radius: 3px;
+  }
+  .comment-form button {
+    background: var(--copper);
+    color: var(--off-white);
+    border: none;
+    padding: 6px 12px;
+    border-radius: 3px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .comment-empty { color: var(--muted); font-style: italic; font-size: 12px; padding: 4px 0; }
+
+  /* Modal */
+  .modal-bg {
+    position: fixed;
+    inset: 0;
+    background: rgba(45, 41, 38, 0.45);
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    z-index: 100;
+    padding: 60px 20px 20px;
+    overflow-y: auto;
+  }
+  .modal-bg.show { display: flex; }
+  .modal {
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    width: 100%;
+    max-width: 640px;
+    padding: 26px 28px 22px;
+    box-shadow: var(--shadow-lg);
+  }
+  .modal h2 {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 26px;
+    margin: 0 0 16px;
+  }
+  .modal-field { margin-bottom: 14px; }
+  .modal-field-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .modal-field input,
+  .modal-field select,
+  .modal-field textarea {
+    width: 100%;
+    font-family: var(--sans);
+    font-size: 13px;
+    border: 1px solid var(--border);
+    background: var(--off-white);
+    color: var(--cast-iron);
+    padding: 9px 11px;
+    border-radius: 3px;
+  }
+  .modal-field textarea { min-height: 80px; resize: vertical; font-family: var(--sans); }
+  .modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-soft);
+  }
+  .req::after { content: " *"; color: var(--rose); }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--cast-iron);
+    color: var(--off-white);
+    padding: 12px 18px;
+    border-radius: 4px;
+    font-size: 13px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 200;
+    pointer-events: none;
+    max-width: 360px;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+  #toast.error { background: var(--rose); }
+
+  .loading, .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  /* Footer */
+  footer {
+    margin-top: 28px;
+    color: var(--muted);
+    font-size: 11px;
+    text-align: center;
+  }
+  footer a { color: var(--copper); text-decoration: none; }
+
+  @media (max-width: 800px) {
+    .detail-grid { grid-template-columns: 1fr; }
+    .modal-row { grid-template-columns: 1fr; }
+    thead th.hide-mobile, tbody td.hide-mobile { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Appellation AI Project Tracker <span class="env-pill" id="envPill">loading</span></h1>
+  <p class="subtitle">Master tracker for AI, Claude &amp; Cowork projects across the team. Live shared state — anyone with this link can submit and edit.</p>
+</header>
+
+<div class="stats" id="stats"></div>
+
+<div class="controls">
+  <div class="control search-control">
+    <label class="control-label" for="search">Search</label>
+    <input id="search" type="search" placeholder="Search name or details…" />
+  </div>
+  <div class="control">
+    <label class="control-label" for="filterStatus">Status</label>
+    <select id="filterStatus"><option value="">All</option></select>
+  </div>
+  <div class="control">
+    <label class="control-label" for="filterPriority">Priority</label>
+    <select id="filterPriority"><option value="">All</option></select>
+  </div>
+  <div class="control">
+    <label class="control-label" for="filterDiscipline">Discipline</label>
+    <select id="filterDiscipline"><option value="">All</option></select>
+  </div>
+  <div class="control">
+    <label class="control-label" for="filterProperty">Property</label>
+    <select id="filterProperty"><option value="">All</option></select>
+  </div>
+  <div class="control">
+    <label class="control-label" for="filterSubmitter">Submitter</label>
+    <select id="filterSubmitter"><option value="">All</option></select>
+  </div>
+  <div class="control">
+    <label class="control-label" for="filterOwner">Owner</label>
+    <select id="filterOwner"><option value="">All</option></select>
+  </div>
+  <div class="control" style="min-width:0;">
+    <button class="btn-secondary btn" id="clearFilters" type="button">Clear</button>
+  </div>
+  <div class="control" style="min-width:0;">
+    <button class="btn" id="openSubmit" type="button">+ Submit a new idea</button>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th data-sort="task_name">Idea</th>
+        <th data-sort="discipline" class="hide-mobile">Discipline</th>
+        <th data-sort="property" class="hide-mobile">Property</th>
+        <th data-sort="submitter" class="hide-mobile">Submitter</th>
+        <th data-sort="owner" class="hide-mobile">Owner</th>
+        <th data-sort="priority">Priority</th>
+        <th data-sort="effort" class="hide-mobile">Effort</th>
+        <th data-sort="target_date" class="hide-mobile">Target</th>
+        <th data-sort="status">Status</th>
+        <th data-sort="last_modified" class="hide-mobile">Updated</th>
+      </tr>
+    </thead>
+    <tbody id="rows"><tr><td colspan="10" class="loading">Loading…</td></tr></tbody>
+  </table>
+</div>
+
+<footer>
+  <p>Backed by Supabase &middot; <a href="#" id="refreshLink">Refresh</a></p>
+</footer>
+
+</div>
+
+<!-- Submit Modal -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h2>Submit a new idea</h2>
+    <form id="submitForm">
+      <div class="modal-field">
+        <label class="modal-field-label req" for="f_name">Idea / project name</label>
+        <input id="f_name" name="task_name" required maxlength="200" autocomplete="off" />
+      </div>
+      <div class="modal-field">
+        <label class="modal-field-label" for="f_details">Details — what would it do, why does it matter?</label>
+        <textarea id="f_details" name="details" rows="4"></textarea>
+      </div>
+      <div class="modal-row">
+        <div class="modal-field">
+          <label class="modal-field-label req" for="f_submitter">Submitter</label>
+          <select id="f_submitter" name="submitter" required></select>
+        </div>
+        <div class="modal-field" id="f_other_wrap" style="display:none;">
+          <label class="modal-field-label" for="f_submitter_other">Your name</label>
+          <input id="f_submitter_other" name="submitter_other" />
+        </div>
+      </div>
+      <div class="modal-row">
+        <div class="modal-field">
+          <label class="modal-field-label" for="f_discipline">Discipline</label>
+          <select id="f_discipline" name="discipline"></select>
+        </div>
+        <div class="modal-field">
+          <label class="modal-field-label" for="f_property">Property</label>
+          <select id="f_property" name="property"></select>
+        </div>
+      </div>
+      <div class="modal-row">
+        <div class="modal-field">
+          <label class="modal-field-label" for="f_priority">Priority</label>
+          <select id="f_priority" name="priority"></select>
+        </div>
+        <div class="modal-field">
+          <label class="modal-field-label" for="f_effort">Estimated effort</label>
+          <select id="f_effort" name="effort"></select>
+        </div>
+      </div>
+      <div class="modal-row">
+        <div class="modal-field">
+          <label class="modal-field-label" for="f_owner">Owner (who would execute)</label>
+          <select id="f_owner" name="owner"></select>
+        </div>
+        <div class="modal-field">
+          <label class="modal-field-label" for="f_target">Target date (optional)</label>
+          <input id="f_target" name="target_date" type="date" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="cancelSubmit">Cancel</button>
+        <button type="submit" class="btn">Submit idea</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="toast" role="status"></div>
+
+<script>
+// ============================================================
+// Configuration
+// ============================================================
+const SUPABASE_URL = 'https://afkjchshoktlmqrpopyk.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_-prKRSiYudfdwYxC1o4Rbw_PZlcJt89';
+const SUPABASE_PROJECT_ID = 'afkjchshoktlmqrpopyk';
+const EXECUTE_SQL_TOOL = 'mcp__8720b8df-9a87-405e-9f98-59b804fda95f__execute_sql';
+
+const SUBMITTERS  = ['Christa', 'Courtland', 'Eric', 'Other'];
+const DISCIPLINES = ['Marketing', 'Web', 'Email', 'Paid Media / Ads', 'Operations', 'F&B', 'Spa', 'Reservations', 'Sales', 'Finance', 'IT', 'HR', 'Brand', 'Other'];
+const PROPERTIES  = ['Appellation Healdsburg', 'The MOHI', 'Lodi / Wine & Roses', 'AMEYALLI Park City', 'Petaluma', 'Pacific Grove', 'Brand-wide', 'Multi-property'];
+const PRIORITIES  = ['High', 'Medium', 'Low'];
+const STATUSES    = ['Submitted', 'Reviewing', 'Approved', 'In Progress', 'Blocked', 'Done', 'Declined'];
+const EFFORTS     = ['Small', 'Medium', 'Large'];
+const OWNERS      = ['Unassigned', 'Christa', 'Courtland', 'Eric'];
+
+// ============================================================
+// Environment detection
+// ============================================================
+const isBridge = typeof window.cowork !== 'undefined' && typeof window.cowork.callMcpTool === 'function';
+document.getElementById('envPill').textContent = isBridge ? 'Cowork preview' : 'Live';
+
+// ============================================================
+// State
+// ============================================================
+let ITEMS = [];
+const COMMENTS = {};
+let filters = { search: '', status: '', priority: '', discipline: '', property: '', submitter: '', owner: '' };
+let sortBy = 'created_at';
+let sortDir = 'desc';
+let expandedId = null;
+let activeStatPill = null;
+
+// Restore prefs
+try {
+  const saved = JSON.parse(localStorage.getItem('wishlist-prefs') || 'null');
+  if (saved) {
+    Object.assign(filters, saved.filters || {});
+    sortBy = saved.sortBy || sortBy;
+    sortDir = saved.sortDir || sortDir;
+  }
+} catch (e) {}
+
+function savePrefs() {
+  try {
+    localStorage.setItem('wishlist-prefs', JSON.stringify({ filters, sortBy, sortDir }));
+  } catch (e) {}
+}
+
+// ============================================================
+// Data layer — bridge vs direct REST
+// ============================================================
+function sqlVal(v) {
+  if (v == null || v === '') return 'NULL';
+  if (typeof v === 'number') return String(v);
+  if (typeof v === 'boolean') return v ? 'TRUE' : 'FALSE';
+  return "'" + String(v).replace(/'/g, "''") + "'";
+}
+
+function parseBridgeResult(r) {
+  if (!r) return [];
+  // Collect possible text payloads (the Supabase MCP wraps results in
+  // <untrusted-data-XXX> ... </untrusted-data-XXX> blocks, prefixed by a
+  // warning message that also mentions the tag name — so we must anchor
+  // the opening tag to a newline to skip the false match).
+  const sources = [];
+  if (r.structuredContent) {
+    if (Array.isArray(r.structuredContent)) return r.structuredContent;
+    if (typeof r.structuredContent === 'string') sources.push(r.structuredContent);
+    if (typeof r.structuredContent.result === 'string') sources.push(r.structuredContent.result);
+  }
+  if (r.content && r.content[0] && r.content[0].text) sources.push(r.content[0].text);
+
+  for (const text of sources) {
+    // Anchor to a newline so we don't catch the tag mentioned in the warning preamble.
+    let m = text.match(/(?:^|\n)<untrusted-data-[a-z0-9-]+>\s*\n([\s\S]*?)\n<\/untrusted-data-[a-z0-9-]+>/);
+    if (m) {
+      const parsed = tryParseJSON(m[1].trim());
+      if (Array.isArray(parsed)) return parsed;
+      if (parsed != null) return [parsed];
+    }
+    // Fallback: any block at all
+    m = text.match(/<untrusted-data-[a-z0-9-]+>\s*\n([\s\S]*?)\n<\/untrusted-data-[a-z0-9-]+>/);
+    if (m) {
+      const parsed = tryParseJSON(m[1].trim());
+      if (Array.isArray(parsed)) return parsed;
+      if (parsed != null) return [parsed];
+    }
+    // Last resort: whole payload is JSON
+    const whole = tryParseJSON(text);
+    if (Array.isArray(whole)) return whole;
+    if (whole != null && typeof whole === 'object') return [whole];
+  }
+  return [];
+}
+function tryParseJSON(s) { try { return JSON.parse(s); } catch (e) { return null; } }
+
+async function bridgeSql(sql) {
+  const r = await window.cowork.callMcpTool(EXECUTE_SQL_TOOL, {
+    project_id: SUPABASE_PROJECT_ID,
+    query: sql
+  });
+  if (r.isError) throw new Error('Supabase error: ' + ((r.content && r.content[0] && r.content[0].text) || 'unknown'));
+  return parseBridgeResult(r);
+}
+
+async function restFetch(path, opts) {
+  const headers = {
+    apikey: SUPABASE_KEY,
+    Authorization: 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  };
+  Object.assign(headers, (opts && opts.headers) || {});
+  const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, Object.assign({ headers }, opts || {}));
+  if (!res.ok) throw new Error('Supabase ' + res.status + ': ' + await res.text());
+  const ct = res.headers.get('content-type') || '';
+  if (ct.includes('application/json')) return res.json();
+  return null;
+}
+
+async function loadItems() {
+  if (isBridge) {
+    return bridgeSql('SELECT * FROM wishlist_items ORDER BY created_at DESC');
+  }
+  return restFetch('wishlist_items?select=*&order=created_at.desc');
+}
+
+async function loadComments(itemId) {
+  if (isBridge) {
+    return bridgeSql("SELECT * FROM wishlist_comments WHERE item_id = '" + itemId + "' ORDER BY created_at ASC");
+  }
+  return restFetch('wishlist_comments?select=*&item_id=eq.' + itemId + '&order=created_at.asc');
+}
+
+async function insertItem(payload) {
+  if (isBridge) {
+    const cols = Object.keys(payload);
+    const vals = cols.map(k => sqlVal(payload[k]));
+    const sql = 'INSERT INTO wishlist_items (' + cols.join(', ') + ') VALUES (' + vals.join(', ') + ') RETURNING *';
+    const rows = await bridgeSql(sql);
+    return rows[0];
+  }
+  const res = await restFetch('wishlist_items', {
+    method: 'POST',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify(payload)
+  });
+  return res[0];
+}
+
+async function updateItem(id, patch) {
+  if (isBridge) {
+    const sets = Object.entries(patch).map(([k, v]) => k + ' = ' + sqlVal(v)).join(', ');
+    const sql = "UPDATE wishlist_items SET " + sets + " WHERE id = '" + id + "' RETURNING *";
+    const rows = await bridgeSql(sql);
+    return rows[0];
+  }
+  const res = await restFetch('wishlist_items?id=eq.' + id, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify(patch)
+  });
+  return res[0];
+}
+
+async function insertComment(itemId, author, body) {
+  if (isBridge) {
+    const sql = "INSERT INTO wishlist_comments (item_id, author, body) VALUES ('" + itemId + "', " + sqlVal(author) + ", " + sqlVal(body) + ") RETURNING *";
+    const rows = await bridgeSql(sql);
+    return rows[0];
+  }
+  const res = await restFetch('wishlist_comments', {
+    method: 'POST',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({ item_id: itemId, author, body })
+  });
+  return res[0];
+}
+
+// ============================================================
+// Utilities
+// ============================================================
+function escape(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+function statusClass(s) { return 'status-' + String(s || 'Submitted').replace(/ /g, ''); }
+function fmtDate(s) {
+  if (!s) return '—';
+  const d = new Date(s);
+  if (isNaN(d)) return s;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function fmtRelative(s) {
+  if (!s) return '—';
+  const d = new Date(s);
+  const diff = (Date.now() - d) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
+  return fmtDate(s);
+}
+
+function populateSelect(el, options, includeAll, currentValue) {
+  el.innerHTML = '';
+  if (includeAll) {
+    const o = document.createElement('option');
+    o.value = '';
+    o.textContent = 'All';
+    el.appendChild(o);
+  }
+  options.forEach(opt => {
+    const o = document.createElement('option');
+    o.value = opt; o.textContent = opt;
+    if (opt === currentValue) o.selected = true;
+    el.appendChild(o);
+  });
+}
+
+// ============================================================
+// Filtering & sorting
+// ============================================================
+function applyFilters(items) {
+  const q = filters.search.trim().toLowerCase();
+  return items.filter(it => {
+    if (filters.status && it.status !== filters.status) return false;
+    if (filters.priority && it.priority !== filters.priority) return false;
+    if (filters.discipline && it.discipline !== filters.discipline) return false;
+    if (filters.property && it.property !== filters.property) return false;
+    if (filters.submitter && it.submitter !== filters.submitter) return false;
+    if (filters.owner && it.owner !== filters.owner) return false;
+    if (q) {
+      const hay = (it.task_name + ' ' + (it.details || '')).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+const PRIORITY_ORDER = { 'High': 0, 'Medium': 1, 'Low': 2 };
+const STATUS_ORDER = STATUSES.reduce((a, s, i) => { a[s] = i; return a; }, {});
+
+function sortItems(items) {
+  const dir = sortDir === 'asc' ? 1 : -1;
+  return [...items].sort((a, b) => {
+    let av = a[sortBy], bv = b[sortBy];
+    if (sortBy === 'priority') { av = PRIORITY_ORDER[av] ?? 99; bv = PRIORITY_ORDER[bv] ?? 99; }
+    else if (sortBy === 'status') { av = STATUS_ORDER[av] ?? 99; bv = STATUS_ORDER[bv] ?? 99; }
+    else if (sortBy === 'target_date' || sortBy === 'created_at' || sortBy === 'last_modified') {
+      av = av ? new Date(av).getTime() : (sortDir === 'asc' ? Infinity : -Infinity);
+      bv = bv ? new Date(bv).getTime() : (sortDir === 'asc' ? Infinity : -Infinity);
+    } else {
+      av = (av || '').toString().toLowerCase();
+      bv = (bv || '').toString().toLowerCase();
+    }
+    if (av < bv) return -1 * dir;
+    if (av > bv) return  1 * dir;
+    return 0;
+  });
+}
+
+// ============================================================
+// Render
+// ============================================================
+function renderStats() {
+  const counts = {};
+  STATUSES.forEach(s => counts[s] = 0);
+  ITEMS.forEach(it => { counts[it.status] = (counts[it.status] || 0) + 1; });
+  counts._total = ITEMS.length;
+  const wrap = document.getElementById('stats');
+  const pills = [
+    { key: '_total', label: 'Total ideas', value: counts._total },
+    { key: 'Submitted',    label: 'New',         value: counts['Submitted'] },
+    { key: 'Reviewing',    label: 'Reviewing',   value: counts['Reviewing'] },
+    { key: 'Approved',     label: 'Approved',    value: counts['Approved'] },
+    { key: 'In Progress',  label: 'In progress', value: counts['In Progress'] },
+    { key: 'Blocked',      label: 'Blocked',     value: counts['Blocked'] },
+    { key: 'Done',         label: 'Done',        value: counts['Done'] }
+  ];
+  wrap.innerHTML = pills.map(p => {
+    const active = (p.key === '_total' && !filters.status) || (filters.status === p.key);
+    return '<div class="stat' + (active ? ' active' : '') + '" data-stat="' + escape(p.key) + '">' +
+      '<div class="stat-label">' + escape(p.label) + '</div>' +
+      '<div class="stat-value">' + p.value + '</div></div>';
+  }).join('');
+  wrap.querySelectorAll('[data-stat]').forEach(el => {
+    el.addEventListener('click', () => {
+      const k = el.getAttribute('data-stat');
+      filters.status = (k === '_total') ? '' : (filters.status === k ? '' : k);
+      document.getElementById('filterStatus').value = filters.status;
+      savePrefs();
+      renderAll();
+    });
+  });
+}
+
+function renderTable() {
+  const tbody = document.getElementById('rows');
+  const filtered = applyFilters(ITEMS);
+  const sorted = sortItems(filtered);
+
+  // Update sort indicators
+  document.querySelectorAll('thead th').forEach(th => {
+    const key = th.getAttribute('data-sort');
+    let label = th.textContent.replace(/[▲▼].*$/, '').trim();
+    if (key === sortBy) label += ' ' + (sortDir === 'asc' ? '▲' : '▼');
+    th.textContent = label;
+  });
+
+  if (!sorted.length) {
+    tbody.innerHTML = '<tr><td colspan="10" class="empty">No ideas match these filters. Try clearing them or submit a new idea.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = sorted.map(it => {
+    const sc = statusClass(it.status);
+    const isOpen = expandedId === it.id;
+    const statusOpts = STATUSES.map(s => '<option value="' + escape(s) + '"' + (s === it.status ? ' selected' : '') + '>' + escape(s) + '</option>').join('');
+    const submitterDisplay = it.submitter === 'Other' && it.submitter_other ? it.submitter_other : (it.submitter || '—');
+
+    let row =
+      '<tr class="' + (isOpen ? 'expanded' : '') + '" data-id="' + it.id + '" data-action="toggle">' +
+        '<td class="task-cell">' +
+          '<div class="task-name">' + escape(it.task_name) + '</div>' +
+          (it.details ? '<div class="task-details">' + escape(it.details) + '</div>' : '') +
+        '</td>' +
+        '<td class="hide-mobile">' + escape(it.discipline || '—') + '</td>' +
+        '<td class="hide-mobile">' + escape(it.property || '—') + '</td>' +
+        '<td class="hide-mobile">' + escape(submitterDisplay) + '</td>' +
+        '<td class="hide-mobile">' + escape(it.owner || 'Unassigned') + '</td>' +
+        '<td><span class="priority-' + escape(it.priority) + '">' + escape(it.priority || '—') + '</span></td>' +
+        '<td class="hide-mobile">' + escape(it.effort || '—') + '</td>' +
+        '<td class="hide-mobile">' + (it.target_date ? fmtDate(it.target_date) : '—') + '</td>' +
+        '<td>' +
+          '<select class="status-select ' + sc + '" data-action="status" data-id="' + it.id + '">' + statusOpts + '</select>' +
+        '</td>' +
+        '<td class="hide-mobile">' + fmtRelative(it.last_modified) + '</td>' +
+      '</tr>';
+
+    if (isOpen) {
+      row += renderDetail(it);
+    }
+    return row;
+  }).join('');
+
+  // Bind row clicks
+  tbody.querySelectorAll('tr[data-action="toggle"]').forEach(tr => {
+    tr.addEventListener('click', (ev) => {
+      if (ev.target.closest('select, input, textarea, button, a')) return;
+      const id = tr.getAttribute('data-id');
+      expandedId = expandedId === id ? null : id;
+      if (expandedId && !COMMENTS[expandedId]) {
+        loadComments(expandedId).then(c => { COMMENTS[expandedId] = c; renderTable(); }).catch(e => toast(e.message, true));
+      }
+      renderTable();
+    });
+  });
+
+  // Status dropdowns
+  tbody.querySelectorAll('[data-action="status"]').forEach(sel => {
+    sel.addEventListener('click', e => e.stopPropagation());
+    sel.addEventListener('change', async (e) => {
+      e.stopPropagation();
+      const id = sel.getAttribute('data-id');
+      const newStatus = sel.value;
+      const item = ITEMS.find(x => x.id === id);
+      const prev = item.status;
+      item.status = newStatus;
+      sel.className = 'status-select ' + statusClass(newStatus);
+      renderStats();
+      try {
+        const updated = await updateItem(id, { status: newStatus });
+        if (updated) Object.assign(item, updated);
+        toast('Status updated');
+        renderTable();
+      } catch (err) {
+        item.status = prev;
+        renderTable();
+        toast('Could not update status: ' + err.message, true);
+      }
+    });
+  });
+
+  // Detail inline editors
+  tbody.querySelectorAll('[data-edit-field]').forEach(el => {
+    el.addEventListener('click', e => e.stopPropagation());
+    el.addEventListener('change', async (e) => {
+      const id = el.getAttribute('data-id');
+      const field = el.getAttribute('data-edit-field');
+      const value = el.value || null;
+      const item = ITEMS.find(x => x.id === id);
+      const prev = item[field];
+      item[field] = value;
+      try {
+        const updated = await updateItem(id, { [field]: value });
+        if (updated) Object.assign(item, updated);
+        toast(field.replace('_', ' ') + ' saved');
+        renderTable();
+      } catch (err) {
+        item[field] = prev;
+        renderTable();
+        toast('Could not save: ' + err.message, true);
+      }
+    });
+  });
+
+  // Notes editor (blur to save)
+  tbody.querySelectorAll('[data-notes-for]').forEach(el => {
+    el.addEventListener('click', e => e.stopPropagation());
+    el.addEventListener('blur', async () => {
+      const id = el.getAttribute('data-notes-for');
+      const item = ITEMS.find(x => x.id === id);
+      const prev = item.details || '';
+      const next = el.value;
+      if (next === prev) return;
+      item.details = next;
+      try {
+        const updated = await updateItem(id, { details: next });
+        if (updated) Object.assign(item, updated);
+        toast('Details saved');
+      } catch (err) {
+        item.details = prev;
+        el.value = prev;
+        toast('Could not save details: ' + err.message, true);
+      }
+    });
+  });
+
+  // Comment form
+  tbody.querySelectorAll('form[data-comment-form]').forEach(form => {
+    form.addEventListener('click', e => e.stopPropagation());
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = form.getAttribute('data-comment-form');
+      const author = form.querySelector('[name="author"]').value;
+      const body = form.querySelector('[name="body"]').value.trim();
+      if (!body) return;
+      try {
+        const c = await insertComment(id, author, body);
+        if (!COMMENTS[id]) COMMENTS[id] = [];
+        COMMENTS[id].push(c);
+        form.querySelector('[name="body"]').value = '';
+        toast('Comment added');
+        renderTable();
+      } catch (err) {
+        toast('Could not add comment: ' + err.message, true);
+      }
+    });
+  });
+}
+
+function renderDetail(it) {
+  const comments = COMMENTS[it.id];
+  const commentsHtml = comments == null
+    ? '<div class="comment-empty">Loading comments…</div>'
+    : comments.length === 0
+      ? '<div class="comment-empty">No comments yet.</div>'
+      : comments.map(c => '<div class="comment">' +
+          '<div class="comment-meta">' + escape(c.author) + ' &middot; ' + fmtRelative(c.created_at) + '</div>' +
+          '<div class="comment-body">' + escape(c.body) + '</div>' +
+        '</div>').join('');
+
+  const submitterDisplay = it.submitter === 'Other' && it.submitter_other ? it.submitter_other : (it.submitter || '—');
+
+  return '<tr class="expanded-detail"><td colspan="10"><div class="detail">' +
+    '<div class="detail-grid">' +
+      '<div>' +
+        '<h3>' + escape(it.task_name) + '</h3>' +
+        '<div class="detail-section">' +
+          '<h4>Details</h4>' +
+          '<textarea class="detail-body" style="width:100%;min-height:90px;resize:vertical;border:1px solid var(--border);font-family:var(--sans);font-size:13px;" data-notes-for="' + it.id + '">' + escape(it.details || '') + '</textarea>' +
+        '</div>' +
+        '<div class="detail-section">' +
+          '<h4>Comments &amp; updates</h4>' +
+          '<div class="comments-list">' + commentsHtml + '</div>' +
+          '<form data-comment-form="' + it.id + '" class="comment-form">' +
+            '<select name="author">' + OWNERS.filter(o => o !== 'Unassigned').concat(['Other']).map(a => '<option value="' + escape(a) + '">' + escape(a) + '</option>').join('') + '</select>' +
+            '<input name="body" type="text" placeholder="Add a comment or status update…" maxlength="500" />' +
+            '<button type="submit">Add</button>' +
+          '</form>' +
+        '</div>' +
+      '</div>' +
+      '<div>' +
+        '<div class="detail-section">' +
+          '<h4>Details</h4>' +
+          '<div class="edit-grid">' +
+            '<span class="label">Submitter</span><span>' + escape(submitterDisplay) + '</span>' +
+            '<span class="label">Discipline</span>' +
+              '<select data-id="' + it.id + '" data-edit-field="discipline">' +
+                '<option value="">—</option>' +
+                DISCIPLINES.map(d => '<option value="' + escape(d) + '"' + (d === it.discipline ? ' selected' : '') + '>' + escape(d) + '</option>').join('') +
+              '</select>' +
+            '<span class="label">Property</span>' +
+              '<select data-id="' + it.id + '" data-edit-field="property">' +
+                '<option value="">—</option>' +
+                PROPERTIES.map(p => '<option value="' + escape(p) + '"' + (p === it.property ? ' selected' : '') + '>' + escape(p) + '</option>').join('') +
+              '</select>' +
+            '<span class="label">Owner</span>' +
+              '<select data-id="' + it.id + '" data-edit-field="owner">' +
+                OWNERS.map(o => '<option value="' + escape(o) + '"' + (o === (it.owner || 'Unassigned') ? ' selected' : '') + '>' + escape(o) + '</option>').join('') +
+              '</select>' +
+            '<span class="label">Priority</span>' +
+              '<select data-id="' + it.id + '" data-edit-field="priority">' +
+                PRIORITIES.map(p => '<option value="' + escape(p) + '"' + (p === it.priority ? ' selected' : '') + '>' + escape(p) + '</option>').join('') +
+              '</select>' +
+            '<span class="label">Effort</span>' +
+              '<select data-id="' + it.id + '" data-edit-field="effort">' +
+                '<option value="">—</option>' +
+                EFFORTS.map(e => '<option value="' + escape(e) + '"' + (e === it.effort ? ' selected' : '') + '>' + escape(e) + '</option>').join('') +
+              '</select>' +
+            '<span class="label">Target date</span>' +
+              '<input type="date" data-id="' + it.id + '" data-edit-field="target_date" value="' + escape(it.target_date || '') + '" />' +
+          '</div>' +
+          '<div class="meta-row">' +
+            'Submitted ' + fmtRelative(it.created_at) +
+            ' &middot; Updated ' + fmtRelative(it.last_modified) +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+  '</div></td></tr>';
+}
+
+function renderAll() {
+  renderStats();
+  renderTable();
+}
+
+// ============================================================
+// Submit modal
+// ============================================================
+function openModal() {
+  document.getElementById('modalBg').classList.add('show');
+  setTimeout(() => document.getElementById('f_name').focus(), 50);
+}
+function closeModal() {
+  document.getElementById('modalBg').classList.remove('show');
+  document.getElementById('submitForm').reset();
+  document.getElementById('f_other_wrap').style.display = 'none';
+}
+
+document.getElementById('openSubmit').addEventListener('click', openModal);
+document.getElementById('cancelSubmit').addEventListener('click', closeModal);
+document.getElementById('modalBg').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('modalBg')) closeModal();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+
+document.getElementById('f_submitter').addEventListener('change', (e) => {
+  document.getElementById('f_other_wrap').style.display = e.target.value === 'Other' ? 'block' : 'none';
+});
+
+document.getElementById('submitForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const fd = new FormData(form);
+  const payload = {
+    task_name: fd.get('task_name'),
+    details: fd.get('details') || null,
+    discipline: fd.get('discipline') || null,
+    property: fd.get('property') || null,
+    submitter: fd.get('submitter'),
+    submitter_other: fd.get('submitter') === 'Other' ? (fd.get('submitter_other') || null) : null,
+    owner: fd.get('owner') || 'Unassigned',
+    priority: fd.get('priority') || 'Medium',
+    effort: fd.get('effort') || null,
+    target_date: fd.get('target_date') || null,
+    status: 'Submitted'
+  };
+  try {
+    const created = await insertItem(payload);
+    if (created) ITEMS.unshift(created);
+    closeModal();
+    toast('Idea submitted — thank you!');
+    renderAll();
+    expandedId = created ? created.id : null;
+    renderTable();
+  } catch (err) {
+    toast('Could not submit: ' + err.message, true);
+  }
+});
+
+// ============================================================
+// Toast
+// ============================================================
+let toastTimer;
+function toast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.toggle('error', !!isError);
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+// ============================================================
+// Filter / sort wiring
+// ============================================================
+function wireFilters() {
+  populateSelect(document.getElementById('filterStatus'),     STATUSES,    true, filters.status);
+  populateSelect(document.getElementById('filterPriority'),   PRIORITIES,  true, filters.priority);
+  populateSelect(document.getElementById('filterDiscipline'), DISCIPLINES, true, filters.discipline);
+  populateSelect(document.getElementById('filterProperty'),   PROPERTIES,  true, filters.property);
+  populateSelect(document.getElementById('filterSubmitter'),  SUBMITTERS,  true, filters.submitter);
+  populateSelect(document.getElementById('filterOwner'),      OWNERS,      true, filters.owner);
+  document.getElementById('search').value = filters.search;
+
+  const wire = (id, key) => {
+    document.getElementById(id).addEventListener('input', (e) => {
+      filters[key] = e.target.value;
+      savePrefs(); renderAll();
+    });
+    document.getElementById(id).addEventListener('change', (e) => {
+      filters[key] = e.target.value;
+      savePrefs(); renderAll();
+    });
+  };
+  wire('search', 'search');
+  wire('filterStatus', 'status');
+  wire('filterPriority', 'priority');
+  wire('filterDiscipline', 'discipline');
+  wire('filterProperty', 'property');
+  wire('filterSubmitter', 'submitter');
+  wire('filterOwner', 'owner');
+
+  document.getElementById('clearFilters').addEventListener('click', () => {
+    filters = { search: '', status: '', priority: '', discipline: '', property: '', submitter: '', owner: '' };
+    document.getElementById('search').value = '';
+    ['filterStatus','filterPriority','filterDiscipline','filterProperty','filterSubmitter','filterOwner'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    savePrefs();
+    renderAll();
+  });
+
+  document.querySelectorAll('thead th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const k = th.getAttribute('data-sort');
+      if (sortBy === k) sortDir = (sortDir === 'asc' ? 'desc' : 'asc');
+      else { sortBy = k; sortDir = 'asc'; }
+      savePrefs();
+      renderTable();
+    });
+  });
+
+  document.getElementById('refreshLink').addEventListener('click', async (e) => {
+    e.preventDefault();
+    await init();
+  });
+}
+
+function wireModalSelects() {
+  populateSelect(document.getElementById('f_submitter'),  SUBMITTERS);
+  populateSelect(document.getElementById('f_discipline'), DISCIPLINES);
+  populateSelect(document.getElementById('f_property'),   PROPERTIES);
+  populateSelect(document.getElementById('f_priority'),   PRIORITIES);
+  populateSelect(document.getElementById('f_effort'),     EFFORTS);
+  populateSelect(document.getElementById('f_owner'),      OWNERS);
+  document.getElementById('f_priority').value = 'Medium';
+  document.getElementById('f_owner').value = 'Unassigned';
+}
+
+// ============================================================
+// Init
+// ============================================================
+async function init() {
+  document.getElementById('rows').innerHTML = '<tr><td colspan="10" class="loading">Loading…</td></tr>';
+  try {
+    ITEMS = await loadItems();
+    renderAll();
+  } catch (err) {
+    console.error(err);
+    document.getElementById('rows').innerHTML = '<tr><td colspan="10" class="empty">Could not load: ' + escape(err.message) + '</td></tr>';
+  }
+}
+
+wireFilters();
+wireModalSelects();
+init();
+</script>
+</body>
+</html>
