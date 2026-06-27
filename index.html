@@ -407,6 +407,44 @@
     tbody tr.expanded-detail td { padding: 0; }
   }
 
+  /* ============ COMPLETED / LIVE PROJECTS DIVIDER ============ */
+  tr.section-divider { cursor: default !important; }
+  tr.section-divider:hover { background: transparent !important; }
+  tr.section-divider td {
+    padding: 28px 12px 12px;
+    background: transparent;
+    border-bottom: 1px solid var(--border-strong);
+    border-top: none;
+  }
+  .section-divider-label {
+    font-family: var(--eyebrow);
+    font-size: 12px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .section-divider-count {
+    font-family: var(--eyebrow);
+    font-size: 11px;
+    letter-spacing: 0.20em;
+    color: var(--text-muted);
+    margin-left: 14px;
+    opacity: 0.65;
+  }
+  @media (max-width: 767px) {
+    tr.section-divider {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      padding: 18px 0 6px !important;
+      margin: 4px 0 4px !important;
+    }
+    tr.section-divider td {
+      padding: 0 0 8px !important;
+      border-bottom: 1px solid var(--border-strong);
+    }
+  }
+
   /* ============ BADGES ============ */
   .badge {
     display: inline-flex;
@@ -1134,6 +1172,12 @@ const STATUS_ORDER = STATUSES.reduce((a, s, i) => { a[s] = i; return a; }, {});
 function sortItems(items) {
   const dir = sortDir === 'asc' ? 1 : -1;
   return [...items].sort((a, b) => {
+    // Done items always drop to the bottom — regardless of user sort —
+    // so they land in the "Completed / Live Projects" section.
+    const aDone = a.status === 'Done' ? 1 : 0;
+    const bDone = b.status === 'Done' ? 1 : 0;
+    if (aDone !== bDone) return aDone - bDone;
+
     let av = a[sortBy], bv = b[sortBy];
     if (sortBy === 'priority') { av = PRIORITY_ORDER[av] ?? 99; bv = PRIORITY_ORDER[bv] ?? 99; }
     else if (sortBy === 'status') { av = STATUS_ORDER[av] ?? 99; bv = STATUS_ORDER[bv] ?? 99; }
@@ -1205,6 +1249,14 @@ function renderTable() {
 
   const isMobile = window.matchMedia('(max-width: 767px)').matches;
 
+  // "Completed / Live Projects" section — only show the divider when the
+  // filtered list contains both active and Done items (otherwise it'd be
+  // redundant). Track whether we've emitted the divider yet.
+  const doneCount = sorted.filter(it => it.status === 'Done').length;
+  const activeCount = sorted.length - doneCount;
+  const showCompletedDivider = doneCount > 0 && activeCount > 0;
+  let dividerEmitted = false;
+
   tbody.innerHTML = sorted.map(it => {
     const sc = statusClass(it.status);
     const isOpen = expandedId === it.id;
@@ -1261,6 +1313,15 @@ function renderTable() {
     }
 
     if (isOpen) row += renderDetail(it);
+
+    // Insert the "Completed / Live Projects" divider just above the first Done item.
+    if (showCompletedDivider && !dividerEmitted && it.status === 'Done') {
+      dividerEmitted = true;
+      row = '<tr class="section-divider"><td colspan="10">' +
+              '<span class="section-divider-label">Completed / Live Projects</span>' +
+              '<span class="section-divider-count">' + doneCount + '</span>' +
+            '</td></tr>' + row;
+    }
     return row;
   }).join('');
 
