@@ -407,6 +407,116 @@
     tbody tr.expanded-detail td { padding: 0; }
   }
 
+  /* ============ SUBMISSION # & RANK BADGES ============ */
+  .task-eyebrow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 4px;
+    font-family: var(--eyebrow);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+  .submission-no {
+    background: var(--linen);
+    border: 1px solid transparent;
+    color: var(--cast-iron);
+    padding: 2px 8px 1px;
+    border-radius: 999px;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+  }
+  .rank-pill {
+    background: var(--off-white);
+    border: 1px solid var(--border-strong);
+    color: var(--appellation-green);
+    padding: 2px 8px 1px;
+    border-radius: 999px;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+  }
+  .rank-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--off-white);
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    padding: 1px 4px;
+  }
+  .rank-controls button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--cast-iron);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0;
+    border-radius: 50%;
+  }
+  .rank-controls button:hover { background: var(--linen); }
+  .rank-controls button:disabled { color: var(--text-muted); opacity: 0.35; cursor: not-allowed; }
+  .rank-controls .current-rank {
+    font-family: var(--eyebrow);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--appellation-green);
+    padding: 0 4px;
+    min-width: 28px;
+    text-align: center;
+  }
+  .add-to-board {
+    background: transparent;
+    border: 1px dashed var(--border-strong);
+    color: var(--text-muted);
+    font-family: var(--eyebrow);
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    padding: 2px 9px 1px;
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .add-to-board:hover { border-color: var(--appellation-green); color: var(--appellation-green); border-style: solid; }
+
+  /* Rank Board toggle in controls */
+  .btn.rank-board-toggle.active {
+    background: var(--cast-iron);
+    border-color: var(--cast-iron);
+    color: var(--off-white);
+  }
+  .rank-board-banner {
+    background: var(--cast-iron);
+    color: var(--off-white);
+    padding: 14px 18px;
+    border-radius: var(--radius);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .rank-board-banner .label {
+    font-family: var(--eyebrow);
+    font-size: 12px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+  }
+  .rank-board-banner .hint {
+    font-family: var(--sans);
+    font-size: 12px;
+    color: var(--linen);
+    font-weight: 300;
+  }
+
   /* ============ COMPLETED / LIVE PROJECTS DIVIDER ============ */
   tr.section-divider { cursor: default !important; }
   tr.section-divider:hover { background: transparent !important; }
@@ -868,9 +978,15 @@
     <select id="filterOwner"><option value="">All</option></select>
   </div>
   <div class="actions-row" style="display: contents;">
+    <button class="btn btn-secondary rank-board-toggle" id="toggleRankBoard" type="button">Rank Board</button>
     <button class="btn btn-secondary" id="clearFilters" type="button">Clear filters</button>
     <button class="btn" id="openSubmit" type="button">+ Submit a new idea</button>
   </div>
+</div>
+
+<div id="rankBoardBanner" class="rank-board-banner" style="display:none;">
+  <span class="label">Project Ranking Board</span>
+  <span class="hint">Ranked items at top, sorted by rank. Use ↑ / ↓ to reorder. Click "Add to board" to rank an unranked item.</span>
 </div>
 
 <div class="table-wrap">
@@ -995,6 +1111,7 @@ let filters = { search: '', status: '', priority: '', discipline: '', property: 
 let sortBy = 'created_at';
 let sortDir = 'desc';
 let expandedId = null;
+let rankBoardMode = false;
 
 try {
   const saved = JSON.parse(localStorage.getItem('wishlist-prefs') || 'null');
@@ -1002,11 +1119,12 @@ try {
     Object.assign(filters, saved.filters || {});
     sortBy = saved.sortBy || sortBy;
     sortDir = saved.sortDir || sortDir;
+    rankBoardMode = !!saved.rankBoardMode;
   }
 } catch (e) {}
 
 function savePrefs() {
-  try { localStorage.setItem('wishlist-prefs', JSON.stringify({ filters, sortBy, sortDir })); } catch (e) {}
+  try { localStorage.setItem('wishlist-prefs', JSON.stringify({ filters, sortBy, sortDir, rankBoardMode })); } catch (e) {}
 }
 
 // ============================================================
@@ -1109,6 +1227,30 @@ async function insertComment(itemId, author, body) {
   return res[0];
 }
 
+// Rank board RPCs (server-side functions defined in migration 'add_rank_helper_functions')
+async function rpcSwapRank(idA, idB) {
+  if (isBridge) {
+    await bridgeSql("SELECT swap_project_rank('" + idA + "'::uuid, '" + idB + "'::uuid)");
+    return;
+  }
+  await restFetch('rpc/swap_project_rank', { method: 'POST', body: JSON.stringify({ id_a: idA, id_b: idB }) });
+}
+async function rpcAddToBoard(itemId) {
+  if (isBridge) {
+    const rows = await bridgeSql("SELECT add_to_rank_board('" + itemId + "'::uuid) AS rank");
+    return (rows[0] && rows[0].rank) || null;
+  }
+  const res = await restFetch('rpc/add_to_rank_board', { method: 'POST', body: JSON.stringify({ target_id: itemId }) });
+  return typeof res === 'number' ? res : (res && res.rank) || null;
+}
+async function rpcRemoveFromBoard(itemId) {
+  if (isBridge) {
+    await bridgeSql("SELECT remove_from_rank_board('" + itemId + "'::uuid)");
+    return;
+  }
+  await restFetch('rpc/remove_from_rank_board', { method: 'POST', body: JSON.stringify({ target_id: itemId }) });
+}
+
 // ============================================================
 // Utilities
 // ============================================================
@@ -1177,6 +1319,20 @@ function sortItems(items) {
     const aDone = a.status === 'Done' ? 1 : 0;
     const bDone = b.status === 'Done' ? 1 : 0;
     if (aDone !== bDone) return aDone - bDone;
+
+    // Rank Board mode: ranked items first (ASC), then unranked by created_at DESC.
+    if (rankBoardMode) {
+      const aHasRank = a.project_rank != null ? 0 : 1;
+      const bHasRank = b.project_rank != null ? 0 : 1;
+      if (aHasRank !== bHasRank) return aHasRank - bHasRank;
+      if (a.project_rank != null && b.project_rank != null) {
+        return a.project_rank - b.project_rank;
+      }
+      // Both unranked — fall through to created_at desc
+      const at = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const bt = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return bt - at;
+    }
 
     let av = a[sortBy], bv = b[sortBy];
     if (sortBy === 'priority') { av = PRIORITY_ORDER[av] ?? 99; bv = PRIORITY_ORDER[bv] ?? 99; }
@@ -1257,11 +1413,39 @@ function renderTable() {
   const showCompletedDivider = doneCount > 0 && activeCount > 0;
   let dividerEmitted = false;
 
+  // Pre-compute the globally-ranked list (across ALL items, not just the
+  // filtered set) so up/down arrows work correctly even with filters on.
+  const allRanked = ITEMS.filter(i => i.project_rank != null).sort((a, b) => a.project_rank - b.project_rank);
+
+  function rankBadgeHtml(it) {
+    if (it.project_rank == null) {
+      return rankBoardMode
+        ? '<button class="add-to-board" data-action="add-to-board" data-id="' + it.id + '">+ Add to board</button>'
+        : '';
+    }
+    if (rankBoardMode) {
+      const idx = allRanked.findIndex(r => r.id === it.id);
+      const isFirst = idx === 0;
+      const isLast = idx === allRanked.length - 1;
+      return '<span class="rank-controls">' +
+        '<button data-action="rank-up" data-id="' + it.id + '" aria-label="Move up"' + (isFirst ? ' disabled' : '') + '>&uarr;</button>' +
+        '<span class="current-rank">#' + it.project_rank + '</span>' +
+        '<button data-action="rank-down" data-id="' + it.id + '" aria-label="Move down"' + (isLast ? ' disabled' : '') + '>&darr;</button>' +
+      '</span>';
+    }
+    return '<span class="rank-pill">Rank #' + it.project_rank + '</span>';
+  }
+
   tbody.innerHTML = sorted.map(it => {
     const sc = statusClass(it.status);
     const isOpen = expandedId === it.id;
     const statusOpts = STATUSES.map(s => '<option value="' + escape(s) + '"' + (s === it.status ? ' selected' : '') + '>' + escape(s) + '</option>').join('');
     const submitterDisplay = it.submitter === 'Other' && it.submitter_other ? it.submitter_other : (it.submitter || '—');
+    const subNo = it.submission_no != null ? it.submission_no : '—';
+    const eyebrow = '<div class="task-eyebrow">' +
+                      '<span class="submission-no">#' + subNo + '</span>' +
+                      rankBadgeHtml(it) +
+                    '</div>';
 
     let row;
     if (isMobile) {
@@ -1269,6 +1453,7 @@ function renderTable() {
       row =
         '<tr class="' + (isOpen ? 'expanded' : '') + '" data-id="' + it.id + '" data-action="toggle">' +
           '<td class="task-cell">' +
+            eyebrow +
             '<div class="task-name">' + escape(it.task_name) + '</div>' +
             (it.details ? '<div class="task-details">' + escape(it.details) + '</div>' : '') +
           '</td>' +
@@ -1297,6 +1482,7 @@ function renderTable() {
       row =
         '<tr class="' + (isOpen ? 'expanded' : '') + '" data-id="' + it.id + '" data-action="toggle">' +
           '<td class="task-cell">' +
+            eyebrow +
             '<div class="task-name">' + escape(it.task_name) + '</div>' +
             (it.details ? '<div class="task-details">' + escape(it.details) + '</div>' : '') +
           '</td>' +
@@ -1426,6 +1612,55 @@ function renderTable() {
         renderTable();
       } catch (err) {
         toast('Could not add comment: ' + err.message, true);
+      }
+    });
+  });
+
+  // Rank board: up / down arrows
+  tbody.querySelectorAll('[data-action="rank-up"], [data-action="rank-down"]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (btn.disabled) return;
+      const id = btn.getAttribute('data-id');
+      const action = btn.getAttribute('data-action');
+      const ranked = ITEMS.filter(i => i.project_rank != null).sort((a, b) => a.project_rank - b.project_rank);
+      const idx = ranked.findIndex(r => r.id === id);
+      if (idx === -1) return;
+      const swapIdx = action === 'rank-up' ? idx - 1 : idx + 1;
+      if (swapIdx < 0 || swapIdx >= ranked.length) return;
+      const item = ranked[idx];
+      const other = ranked[swapIdx];
+      const prevItemRank = item.project_rank;
+      const prevOtherRank = other.project_rank;
+      item.project_rank = prevOtherRank;
+      other.project_rank = prevItemRank;
+      renderAll();
+      try {
+        await rpcSwapRank(item.id, other.id);
+        toast('Rank updated');
+      } catch (err) {
+        item.project_rank = prevItemRank;
+        other.project_rank = prevOtherRank;
+        renderAll();
+        toast('Could not move: ' + err.message, true);
+      }
+    });
+  });
+
+  // Rank board: add an unranked item to the board (assigns next rank)
+  tbody.querySelectorAll('[data-action="add-to-board"]').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const id = btn.getAttribute('data-id');
+      const item = ITEMS.find(i => i.id === id);
+      if (!item) return;
+      try {
+        const newRank = await rpcAddToBoard(id);
+        item.project_rank = newRank;
+        toast('Added to ranking board at #' + newRank);
+        renderAll();
+      } catch (err) {
+        toast('Could not add to board: ' + err.message, true);
       }
     });
   });
@@ -1632,6 +1867,21 @@ function wireFilters() {
     e.preventDefault();
     await init();
   });
+
+  // Rank Board toggle
+  const rankToggle = document.getElementById('toggleRankBoard');
+  const rankBanner = document.getElementById('rankBoardBanner');
+  function syncRankBoardUI() {
+    rankToggle.classList.toggle('active', rankBoardMode);
+    rankBanner.style.display = rankBoardMode ? 'flex' : 'none';
+  }
+  rankToggle.addEventListener('click', () => {
+    rankBoardMode = !rankBoardMode;
+    syncRankBoardUI();
+    savePrefs();
+    renderAll();
+  });
+  syncRankBoardUI();
 }
 
 function wireModalSelects() {
